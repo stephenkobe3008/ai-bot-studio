@@ -1,32 +1,6 @@
 import Link from "next/link";
 
-type Bot = {
-  id: number;
-  name: string;
-  description: string;
-  status: "公開中" | "下書き";
-};
-
-const bots: Bot[] = [
-  {
-    id: 1,
-    name: "カスタマーサポートBot",
-    description: "お客様からの質問に回答するAI Botです。",
-    status: "公開中",
-  },
-  {
-    id: 2,
-    name: "社内質問Bot",
-    description: "社内ルールや業務手順について回答します。",
-    status: "下書き",
-  },
-  {
-    id: 3,
-    name: "採用案内Bot",
-    description: "求人や採用情報について回答します。",
-    status: "公開中",
-  },
-];
+import { bots } from "@/data/bots";
 
 export default function BotsPage() {
   return (
@@ -67,9 +41,12 @@ export default function BotsPage() {
 
             <p className="text-gray-600">{bot.description}</p>
 
-            <button className="mt-6 rounded-md border border-gray-300 px-4 py-2">
+            <Link
+              href={`/bots/${bot.id}`}
+              className="mt-6 inline-block rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
+            >
               詳細を見る
-            </button>
+            </Link>
           </article>
         ))}
       </div>
