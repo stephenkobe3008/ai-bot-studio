@@ -13,10 +13,12 @@ export default function BotsPage() {
             作成したAI Botを管理します。
           </p>
         </div>
-
-        <button className="rounded-md bg-black px-4 py-2 text-white">
-          Botを作成
-        </button>
+                  <Link
+            href="/bots/new"
+            className="rounded-md bg-black px-4 py-2 text-white transition hover:bg-gray-700"
+          >
+        Botを作成
+      </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
