@@ -6,6 +6,32 @@ import { useState } from "react";
 import * as z from "zod";
 
 import {
+  Button,
+  buttonVariants,
+} from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
   botSchema,
   type BotFormData,
 } from "@/schemas/bot";
@@ -72,7 +98,11 @@ export default function NewBotPage() {
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
       <Link
         href="/bots"
-        className="mb-8 inline-block text-sm text-gray-600 underline"
+        className={buttonVariants({
+          variant: "link",
+          className:
+            "mb-8 h-auto px-0 text-muted-foreground",
+        })}
       >
         Bot一覧へ戻る
       </Link>
@@ -82,247 +112,267 @@ export default function NewBotPage() {
           Botを新規作成
         </h1>
 
-        <p className="mt-2 text-gray-600">
+        <p className="mt-2 text-muted-foreground">
           Botの基本情報と役割を入力してください。
         </p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <form
-          noValidate
-          onSubmit={handleSubmit}
-          className="space-y-6 rounded-lg border border-gray-200 p-6 shadow-sm"
-        >
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-2 block font-semibold"
+        <Card>
+          <CardHeader>
+            <CardTitle>Bot情報</CardTitle>
+
+            <CardDescription>
+              Bot名、説明、システムプロンプトを
+              入力してください。
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            <form
+              noValidate
+              onSubmit={handleSubmit}
             >
-              Bot名
-            </label>
+              <FieldGroup>
+                <Field
+                  data-invalid={
+                    errors.name ? true : undefined
+                  }
+                >
+                  <FieldLabel htmlFor="name">
+                    Bot名
+                  </FieldLabel>
 
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(event) =>
-                setName(event.target.value)
-              }
-              placeholder="例：カスタマーサポートBot"
-              aria-invalid={Boolean(errors.name)}
-              aria-describedby={
-                errors.name ? "name-error" : undefined
-              }
-              className={`w-full rounded-md border bg-white px-3 py-2 text-black ${
-                errors.name
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-            />
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(event) =>
+                      setName(event.target.value)
+                    }
+                    placeholder="例：カスタマーサポートBot"
+                    aria-invalid={Boolean(errors.name)}
+                    aria-describedby={
+                      errors.name
+                        ? "name-error"
+                        : undefined
+                    }
+                  />
 
-            {errors.name?.[0] && (
-              <p
-                id="name-error"
-                className="mt-2 text-sm text-red-600"
-              >
-                {errors.name[0]}
+                  {errors.name?.[0] && (
+                    <FieldError id="name-error">
+                      {errors.name[0]}
+                    </FieldError>
+                  )}
+                </Field>
+
+                <Field
+                  data-invalid={
+                    errors.description
+                      ? true
+                      : undefined
+                  }
+                >
+                  <FieldLabel htmlFor="description">
+                    説明
+                  </FieldLabel>
+
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(event) =>
+                      setDescription(event.target.value)
+                    }
+                    placeholder="このBotが何をするのか入力してください"
+                    rows={4}
+                    aria-invalid={Boolean(
+                      errors.description,
+                    )}
+                    aria-describedby={
+                      errors.description
+                        ? "description-error"
+                        : undefined
+                    }
+                  />
+
+                  {errors.description?.[0] && (
+                    <FieldError id="description-error">
+                      {errors.description[0]}
+                    </FieldError>
+                  )}
+                </Field>
+
+                <Field
+                  data-invalid={
+                    errors.systemPrompt
+                      ? true
+                      : undefined
+                  }
+                >
+                  <FieldLabel htmlFor="systemPrompt">
+                    システムプロンプト
+                  </FieldLabel>
+
+                  <Textarea
+                    id="systemPrompt"
+                    value={systemPrompt}
+                    onChange={(event) =>
+                      setSystemPrompt(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="例：あなたは丁寧なカスタマーサポート担当です"
+                    rows={6}
+                    aria-invalid={Boolean(
+                      errors.systemPrompt,
+                    )}
+                    aria-describedby={
+                      errors.systemPrompt
+                        ? "system-prompt-error"
+                        : undefined
+                    }
+                  />
+
+                  {errors.systemPrompt?.[0] && (
+                    <FieldError id="system-prompt-error">
+                      {errors.systemPrompt[0]}
+                    </FieldError>
+                  )}
+                </Field>
+
+                <Field
+                  data-invalid={
+                    errors.status ? true : undefined
+                  }
+                >
+                  <FieldLabel htmlFor="status">
+                    ステータス
+                  </FieldLabel>
+
+                  <Select
+                    value={status}
+                    onValueChange={(value) =>
+                      setStatus(
+                        value as BotFormData["status"],
+                      )
+                    }
+                  >
+                    <SelectTrigger
+                      id="status"
+                      className="w-full"
+                      aria-invalid={Boolean(
+                        errors.status,
+                      )}
+                      aria-describedby={
+                        errors.status
+                          ? "status-error"
+                          : undefined
+                      }
+                    >
+                      <SelectValue placeholder="ステータスを選択" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      <SelectItem value="下書き">
+                        下書き
+                      </SelectItem>
+
+                      <SelectItem value="公開中">
+                        公開中
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {errors.status?.[0] && (
+                    <FieldError id="status-error">
+                      {errors.status[0]}
+                    </FieldError>
+                  )}
+                </Field>
+
+                <div className="flex flex-wrap gap-3">
+                  <Button type="submit">
+                    作成内容を確認
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleReset}
+                  >
+                    入力をリセット
+                  </Button>
+                </div>
+              </FieldGroup>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>作成内容</CardTitle>
+
+            <CardDescription>
+              Zodの検証に成功した内容を表示します。
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {submittedBot ? (
+              <div className="space-y-5">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Bot名
+                  </p>
+
+                  <p className="font-semibold">
+                    {submittedBot.name}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    説明
+                  </p>
+
+                  <p>
+                    {submittedBot.description}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    システムプロンプト
+                  </p>
+
+                  <p className="mt-2 whitespace-pre-wrap rounded-md bg-muted p-4">
+                    {submittedBot.systemPrompt}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    ステータス
+                  </p>
+
+                  <p>{submittedBot.status}</p>
+                </div>
+
+                <div className="rounded-md border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                  Zodのバリデーションに成功しました。
+                  データベースへの保存は後の課題で
+                  実装します。
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                正しい内容を入力して
+                「作成内容を確認」を押すと、
+                ここに内容が表示されます。
               </p>
             )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="description"
-              className="mb-2 block font-semibold"
-            >
-              説明
-            </label>
-
-            <textarea
-              id="description"
-              value={description}
-              onChange={(event) =>
-                setDescription(event.target.value)
-              }
-              placeholder="このBotが何をするのか入力してください"
-              rows={4}
-              aria-invalid={Boolean(errors.description)}
-              aria-describedby={
-                errors.description
-                  ? "description-error"
-                  : undefined
-              }
-              className={`w-full rounded-md border bg-white px-3 py-2 text-black ${
-                errors.description
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-            />
-
-            {errors.description?.[0] && (
-              <p
-                id="description-error"
-                className="mt-2 text-sm text-red-600"
-              >
-                {errors.description[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="systemPrompt"
-              className="mb-2 block font-semibold"
-            >
-              システムプロンプト
-            </label>
-
-            <textarea
-              id="systemPrompt"
-              value={systemPrompt}
-              onChange={(event) =>
-                setSystemPrompt(event.target.value)
-              }
-              placeholder="例：あなたは丁寧なカスタマーサポート担当です"
-              rows={6}
-              aria-invalid={Boolean(errors.systemPrompt)}
-              aria-describedby={
-                errors.systemPrompt
-                  ? "system-prompt-error"
-                  : undefined
-              }
-              className={`w-full rounded-md border bg-white px-3 py-2 text-black ${
-                errors.systemPrompt
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-            />
-
-            {errors.systemPrompt?.[0] && (
-              <p
-                id="system-prompt-error"
-                className="mt-2 text-sm text-red-600"
-              >
-                {errors.systemPrompt[0]}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="status"
-              className="mb-2 block font-semibold"
-            >
-              ステータス
-            </label>
-
-            <select
-              id="status"
-              value={status}
-              onChange={(event) =>
-                setStatus(
-                  event.target
-                    .value as BotFormData["status"],
-                )
-              }
-              aria-invalid={Boolean(errors.status)}
-              aria-describedby={
-                errors.status ? "status-error" : undefined
-              }
-              className={`w-full rounded-md border bg-white px-3 py-2 text-black ${
-                errors.status
-                  ? "border-red-500"
-                  : "border-gray-300"
-              }`}
-            >
-              <option value="下書き">下書き</option>
-              <option value="公開中">公開中</option>
-            </select>
-
-            {errors.status?.[0] && (
-              <p
-                id="status-error"
-                className="mt-2 text-sm text-red-600"
-              >
-                {errors.status[0]}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
-              className="rounded-md bg-black px-5 py-2 text-white transition hover:bg-gray-700"
-            >
-              作成内容を確認
-            </button>
-
-            <button
-              type="button"
-              onClick={handleReset}
-              className="rounded-md border border-gray-300 px-5 py-2 transition hover:bg-gray-50"
-            >
-              入力をリセット
-            </button>
-          </div>
-        </form>
-
-        <section className="rounded-lg border border-gray-200 p-6 shadow-sm">
-          <h2 className="mb-6 text-xl font-bold">
-            作成内容
-          </h2>
-
-          {submittedBot ? (
-            <div className="space-y-5">
-              <div>
-                <p className="text-sm text-gray-500">
-                  Bot名
-                </p>
-
-                <p className="font-semibold">
-                  {submittedBot.name}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  説明
-                </p>
-
-                <p>{submittedBot.description}</p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  システムプロンプト
-                </p>
-
-                <p className="rounded-md bg-gray-50 p-4 text-gray-700">
-                  {submittedBot.systemPrompt}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-sm text-gray-500">
-                  ステータス
-                </p>
-
-                <p>{submittedBot.status}</p>
-              </div>
-
-              <p className="rounded-md bg-green-50 p-4 text-sm text-green-700">
-                Zodのバリデーションに成功しました。
-                データベースへの保存は後の課題で実装します。
-              </p>
-            </div>
-          ) : (
-            <p className="text-gray-500">
-              正しい内容を入力して
-              「作成内容を確認」を押すと、
-              ここに内容が表示されます。
-            </p>
-          )}
-        </section>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );
