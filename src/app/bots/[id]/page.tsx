@@ -1,6 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Badge } from "@/components/ui/badge";
+import {
+  Button,
+  buttonVariants,
+} from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { bots } from "@/data/bots";
 
 type BotDetailPageProps = {
@@ -16,7 +29,9 @@ export default async function BotDetailPage({
 
   const botId = Number(id);
 
-  const bot = bots.find((bot) => bot.id === botId);
+  const bot = bots.find(
+    (currentBot) => currentBot.id === botId,
+  );
 
   if (!bot) {
     notFound();
@@ -26,53 +41,78 @@ export default async function BotDetailPage({
     <main className="mx-auto min-h-screen max-w-3xl px-6 py-12">
       <Link
         href="/bots"
-        className="mb-8 inline-block text-sm text-gray-600 underline"
+        className={buttonVariants({
+          variant: "link",
+          className:
+            "mb-8 h-auto px-0 text-muted-foreground",
+        })}
       >
         Bot一覧へ戻る
       </Link>
 
-      <article className="rounded-lg border border-gray-200 p-8 shadow-sm">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <p className="mb-2 text-sm text-gray-500">Bot ID：{bot.id}</p>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <CardDescription>
+                Bot ID：{bot.id}
+              </CardDescription>
 
-            <h1 className="text-3xl font-bold">{bot.name}</h1>
+              <CardTitle className="text-3xl">
+                {bot.name}
+              </CardTitle>
+            </div>
+
+            <Badge
+              variant={
+                bot.status === "公開中"
+                  ? "default"
+                  : "secondary"
+              }
+              className={
+                bot.status === "公開中"
+                  ? "w-fit bg-green-600 text-white"
+                  : "w-fit"
+              }
+            >
+              {bot.status}
+            </Badge>
           </div>
+        </CardHeader>
 
-          <span
-            className={
-              bot.status === "公開中"
-                ? "rounded-full bg-green-100 px-3 py-1 text-sm text-green-700"
-                : "rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600"
-            }
-          >
-            {bot.status}
-          </span>
-        </div>
+        <CardContent className="space-y-8">
+          <section className="space-y-2">
+            <h2 className="font-semibold">説明</h2>
 
-        <section className="mb-8">
-          <h2 className="mb-2 font-semibold">説明</h2>
-          <p className="text-gray-600">{bot.description}</p>
-        </section>
+            <p className="leading-7 text-muted-foreground">
+              {bot.description}
+            </p>
+          </section>
 
-        <section className="mb-8">
-          <h2 className="mb-2 font-semibold">システムプロンプト</h2>
+          <section className="space-y-2">
+            <h2 className="font-semibold">
+              システムプロンプト
+            </h2>
 
-          <p className="rounded-md bg-gray-50 p-4 text-gray-700">
-            {bot.systemPrompt}
-          </p>
-        </section>
+            <p className="whitespace-pre-wrap rounded-md bg-muted p-4 leading-7">
+              {bot.systemPrompt}
+            </p>
+          </section>
+        </CardContent>
 
-        <div className="flex gap-3">
-          <button className="rounded-md bg-black px-4 py-2 text-white">
+        <CardFooter className="flex flex-wrap gap-3">
+          <Button type="button">
             編集する
-          </button>
+          </Button>
 
-          <button className="rounded-md border border-red-300 px-4 py-2 text-red-600">
+          <Button
+            type="button"
+            variant="destructive"
+          >
             削除する
-          </button>
-        </div>
-      </article>
+          </Button>
+        </CardFooter>
+      </Card>
     </main>
   );
 }
