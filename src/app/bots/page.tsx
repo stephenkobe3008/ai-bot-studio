@@ -1,61 +1,97 @@
 import Link from "next/link";
 
+import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { bots } from "@/data/bots";
 
 export default function BotsPage() {
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
-      <div className="mb-10 flex items-center justify-between">
+      <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Bot一覧</h1>
 
-          <p className="mt-2 text-gray-600">
+          <p className="mt-2 text-muted-foreground">
             作成したAI Botを管理します。
           </p>
         </div>
-                  <Link
-            href="/bots/new"
-            className="rounded-md bg-black px-4 py-2 text-white transition hover:bg-gray-700"
-          >
-        Botを作成
-      </Link>
+
+        <Link
+          href="/bots/new"
+          className={buttonVariants({
+            variant: "default",
+          })}
+        >
+          Botを作成
+        </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {bots.map((bot) => (
-          <article
-            key={bot.id}
-            className="rounded-lg border border-gray-200 p-6 shadow-sm"
-          >
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <h2 className="text-xl font-semibold">{bot.name}</h2>
+          <Card key={bot.id}>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <CardTitle>{bot.name}</CardTitle>
 
-              <span
-                className={
-                  bot.status === "公開中"
-                    ? "rounded-full bg-green-100 px-3 py-1 text-sm text-green-700"
-                    : "rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600"
-                }
+                  <CardDescription>
+                    Bot ID：{bot.id}
+                  </CardDescription>
+                </div>
+
+                <Badge
+                  variant={
+                    bot.status === "公開中"
+                      ? "default"
+                      : "secondary"
+                  }
+                  className={
+                    bot.status === "公開中"
+                      ? "bg-green-600 text-white"
+                      : undefined
+                  }
+                >
+                  {bot.status}
+                </Badge>
+              </div>
+            </CardHeader>
+
+            <CardContent>
+              <p className="text-sm leading-7 text-muted-foreground">
+                {bot.description}
+              </p>
+            </CardContent>
+
+            <CardFooter>
+              <Link
+                href={`/bots/${bot.id}`}
+                className={buttonVariants({
+                  variant: "outline",
+                  className: "w-full",
+                })}
               >
-                {bot.status}
-              </span>
-            </div>
-
-            <p className="text-gray-600">{bot.description}</p>
-
-            <Link
-              href={`/bots/${bot.id}`}
-              className="mt-6 inline-block rounded-md border border-gray-300 px-4 py-2 hover:bg-gray-50"
-            >
-              詳細を見る
-            </Link>
-          </article>
+                詳細を見る
+              </Link>
+            </CardFooter>
+          </Card>
         ))}
       </div>
 
       <Link
         href="/"
-        className="mt-10 inline-block text-sm text-gray-600 underline"
+        className={buttonVariants({
+          variant: "link",
+          className:
+            "mt-10 h-auto px-0 text-muted-foreground",
+        })}
       >
         トップページへ戻る
       </Link>
