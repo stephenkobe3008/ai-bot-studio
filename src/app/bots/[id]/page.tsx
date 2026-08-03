@@ -101,9 +101,14 @@ export default async function BotDetailPage({
         </CardContent>
 
         <CardFooter className="flex flex-wrap gap-3">
-          <Button type="button">
+          <Link
+            href={`/bots/${bot.id}/edit`}
+            className={buttonVariants({
+              variant: "default",
+            })}
+          >
             編集する
-          </Button>
+          </Link>
 
           <Button
             type="button"
