@@ -3,13 +3,20 @@ import { notFound } from "next/navigation";
 
 import { EditBotForm } from "@/components/bots/edit-bot-form";
 import { buttonVariants } from "@/components/ui/button";
-import { bots } from "@/data/bots";
+import prisma from "@/lib/prisma";
+import type { BotFormData } from "@/schemas/bot";
 
 type EditBotPageProps = {
   params: Promise<{
     id: string;
   }>;
 };
+
+function isBotStatus(
+  value: string,
+): value is BotFormData["status"] {
+  return value === "公開中" || value === "下書き";
+}
 
 export default async function EditBotPage({
   params,
@@ -18,13 +25,39 @@ export default async function EditBotPage({
 
   const botId = Number(id);
 
-  const bot = bots.find(
-    (currentBot) => currentBot.id === botId,
-  );
+  if (!Number.isInteger(botId)) {
+    notFound();
+  }
+
+  const bot = await prisma.bot.findUnique({
+    where: {
+      id: botId,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      systemPrompt: true,
+      status: true,
+    },
+  });
 
   if (!bot) {
     notFound();
   }
+
+  const status: BotFormData["status"] =
+    isBotStatus(bot.status)
+      ? bot.status
+      : "下書き";
+
+  const initialBot = {
+    id: bot.id,
+    name: bot.name,
+    description: bot.description,
+    systemPrompt: bot.systemPrompt,
+    status,
+  };
 
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
@@ -53,7 +86,7 @@ export default async function EditBotPage({
         </p>
       </div>
 
-      <EditBotForm initialBot={bot} />
+      <EditBotForm initialBot={initialBot} />
     </main>
   );
 }
