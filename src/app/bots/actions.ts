@@ -14,16 +14,58 @@ type BotFormErrors = Partial<
   Record<keyof BotFormData, string[]>
 >;
 
-type UpdateBotActionResult = {
+type BotActionResult = {
   success: false;
   message: string;
   fieldErrors?: BotFormErrors;
 };
 
+export async function createBotAction(
+  input: BotFormData,
+): Promise<BotActionResult> {
+  const result = botSchema.safeParse(input);
+
+  if (!result.success) {
+    const flattenedErrors = z.flattenError(result.error);
+
+    return {
+      success: false,
+      message: "入力内容を確認してください。",
+      fieldErrors: flattenedErrors.fieldErrors,
+    };
+  }
+
+  let botId: number;
+
+  try {
+    const bot = await prisma.bot.create({
+      data: {
+        name: result.data.name,
+        description: result.data.description,
+        systemPrompt: result.data.systemPrompt,
+        status: result.data.status,
+      },
+    });
+
+    botId = bot.id;
+  } catch (error) {
+    console.error("Botの作成に失敗しました。", error);
+
+    return {
+      success: false,
+      message: "Botの作成に失敗しました。",
+    };
+  }
+
+  revalidatePath("/bots");
+
+  redirect(`/bots/${botId}`);
+}
+
 export async function updateBotAction(
   botId: number,
   input: BotFormData,
-): Promise<UpdateBotActionResult> {
+): Promise<BotActionResult> {
   if (!Number.isInteger(botId) || botId <= 0) {
     return {
       success: false,
