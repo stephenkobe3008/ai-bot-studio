@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { bots } from "@/data/bots";
+import prisma from "@/lib/prisma";
 
 type BotDetailPageProps = {
   params: Promise<{
@@ -29,9 +29,15 @@ export default async function BotDetailPage({
 
   const botId = Number(id);
 
-  const bot = bots.find(
-    (currentBot) => currentBot.id === botId,
-  );
+  if (!Number.isInteger(botId)) {
+    notFound();
+  }
+
+  const bot = await prisma.bot.findUnique({
+    where: {
+      id: botId,
+    },
+  });
 
   if (!bot) {
     notFound();
@@ -82,7 +88,9 @@ export default async function BotDetailPage({
 
         <CardContent className="space-y-8">
           <section className="space-y-2">
-            <h2 className="font-semibold">説明</h2>
+            <h2 className="font-semibold">
+              説明
+            </h2>
 
             <p className="leading-7 text-muted-foreground">
               {bot.description}
@@ -96,6 +104,18 @@ export default async function BotDetailPage({
 
             <p className="whitespace-pre-wrap rounded-md bg-muted p-4 leading-7">
               {bot.systemPrompt}
+            </p>
+          </section>
+
+          <section className="grid gap-4 border-t pt-6 text-sm text-muted-foreground sm:grid-cols-2">
+            <p>
+              作成日時：
+              {bot.createdAt.toLocaleString("ja-JP")}
+            </p>
+
+            <p>
+              更新日時：
+              {bot.updatedAt.toLocaleString("ja-JP")}
             </p>
           </section>
         </CardContent>

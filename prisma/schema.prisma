@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Bot {
+  id           Int      @id @default(autoincrement())
+  name         String
+  description  String
+  systemPrompt String
+  status       String   @default("下書き")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
