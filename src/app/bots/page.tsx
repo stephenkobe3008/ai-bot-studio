@@ -10,17 +10,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { bots } from "@/data/bots";
+import prisma from "@/lib/prisma";
 
-export default function BotsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function BotsPage() {
+  const bots = await prisma.bot.findMany({
+    orderBy: {
+      id: "asc",
+    },
+  });
+
   return (
     <main className="mx-auto min-h-screen max-w-5xl px-6 py-12">
       <div className="mb-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Bot一覧</h1>
+          <h1 className="text-3xl font-bold">
+            Bot一覧
+          </h1>
 
           <p className="mt-2 text-muted-foreground">
-            作成したAI Botを管理します。
+            データベースに登録されたAI Botを管理します。
           </p>
         </div>
 
@@ -34,56 +44,66 @@ export default function BotsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {bots.map((bot) => (
-          <Card key={bot.id}>
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2">
-                  <CardTitle>{bot.name}</CardTitle>
+      {bots.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2">
+          {bots.map((bot) => (
+            <Card key={bot.id}>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2">
+                    <CardTitle>
+                      {bot.name}
+                    </CardTitle>
 
-                  <CardDescription>
-                    Bot ID：{bot.id}
-                  </CardDescription>
+                    <CardDescription>
+                      Bot ID：{bot.id}
+                    </CardDescription>
+                  </div>
+
+                  <Badge
+                    variant={
+                      bot.status === "公開中"
+                        ? "default"
+                        : "secondary"
+                    }
+                    className={
+                      bot.status === "公開中"
+                        ? "bg-green-600 text-white"
+                        : undefined
+                    }
+                  >
+                    {bot.status}
+                  </Badge>
                 </div>
+              </CardHeader>
 
-                <Badge
-                  variant={
-                    bot.status === "公開中"
-                      ? "default"
-                      : "secondary"
-                  }
-                  className={
-                    bot.status === "公開中"
-                      ? "bg-green-600 text-white"
-                      : undefined
-                  }
+              <CardContent>
+                <p className="text-sm leading-7 text-muted-foreground">
+                  {bot.description}
+                </p>
+              </CardContent>
+
+              <CardFooter>
+                <Link
+                  href={`/bots/${bot.id}`}
+                  className={buttonVariants({
+                    variant: "outline",
+                    className: "w-full",
+                  })}
                 >
-                  {bot.status}
-                </Badge>
-              </div>
-            </CardHeader>
-
-            <CardContent>
-              <p className="text-sm leading-7 text-muted-foreground">
-                {bot.description}
-              </p>
-            </CardContent>
-
-            <CardFooter>
-              <Link
-                href={`/bots/${bot.id}`}
-                className={buttonVariants({
-                  variant: "outline",
-                  className: "w-full",
-                })}
-              >
-                詳細を見る
-              </Link>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+                  詳細を見る
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            Botはまだ登録されていません。
+          </CardContent>
+        </Card>
+      )}
 
       <Link
         href="/"
