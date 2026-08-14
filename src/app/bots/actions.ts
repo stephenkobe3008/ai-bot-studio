@@ -112,3 +112,33 @@ export async function updateBotAction(
 
   redirect(`/bots/${botId}`);
 }
+
+export async function deleteBotAction(
+  botId: number,
+): Promise<BotActionResult> {
+  if (!Number.isInteger(botId) || botId <= 0) {
+    return {
+      success: false,
+      message: "Bot IDが正しくありません。",
+    };
+  }
+
+  try {
+    await prisma.bot.delete({
+      where: {
+        id: botId,
+      },
+    });
+  } catch (error) {
+    console.error("Botの削除に失敗しました。", error);
+
+    return {
+      success: false,
+      message: "Botの削除に失敗しました。",
+    };
+  }
+
+  revalidatePath("/bots");
+
+  redirect("/bots");
+}

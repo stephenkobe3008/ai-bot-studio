@@ -1,11 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { DeleteBotButton } from "@/components/bots/delete-bot-button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Button,
-  buttonVariants,
-} from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -130,12 +128,10 @@ export default async function BotDetailPage({
             編集する
           </Link>
 
-          <Button
-            type="button"
-            variant="destructive"
-          >
-            削除する
-          </Button>
+          <DeleteBotButton
+            botId={bot.id}
+            botName={bot.name}
+          />
         </CardFooter>
       </Card>
     </main>
