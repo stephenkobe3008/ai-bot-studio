@@ -27,15 +27,19 @@ export default async function BotDetailPage({
 
   const botId = Number(id);
 
-  if (!Number.isInteger(botId)) {
+  if (
+    !Number.isInteger(botId) ||
+    botId <= 0
+  ) {
     notFound();
   }
 
-  const bot = await prisma.bot.findUnique({
-    where: {
-      id: botId,
-    },
-  });
+  const bot =
+    await prisma.bot.findUnique({
+      where: {
+        id: botId,
+      },
+    });
 
   if (!bot) {
     notFound();
@@ -108,21 +112,36 @@ export default async function BotDetailPage({
           <section className="grid gap-4 border-t pt-6 text-sm text-muted-foreground sm:grid-cols-2">
             <p>
               作成日時：
-              {bot.createdAt.toLocaleString("ja-JP")}
+              {bot.createdAt.toLocaleString(
+                "ja-JP",
+              )}
             </p>
 
             <p>
               更新日時：
-              {bot.updatedAt.toLocaleString("ja-JP")}
+              {bot.updatedAt.toLocaleString(
+                "ja-JP",
+              )}
             </p>
           </section>
         </CardContent>
 
         <CardFooter className="flex flex-wrap gap-3">
+          {bot.status === "公開中" && (
+            <Link
+              href={`/bots/${bot.id}/chat`}
+              className={buttonVariants({
+                variant: "default",
+              })}
+            >
+              チャットする
+            </Link>
+          )}
+
           <Link
             href={`/bots/${bot.id}/edit`}
             className={buttonVariants({
-              variant: "default",
+              variant: "outline",
             })}
           >
             編集する
