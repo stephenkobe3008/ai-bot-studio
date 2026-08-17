@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
 import { useState } from "react";
 
@@ -13,31 +14,49 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 
-type BotChatProps = {
-  botId: number;
-  botName: string;
-};
-
-type ChatMessage = {
+export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
 };
 
+type BotChatProps = {
+  botId: number;
+  botName: string;
+
+  initialConversationId?: number;
+
+  initialMessages?: ChatMessage[];
+};
+
 type ChatApiResponse = {
   reply?: string;
+  conversationId?: number;
   error?: string;
 };
 
 export function BotChat({
   botId,
   botName,
+  initialConversationId,
+  initialMessages = [],
 }: BotChatProps) {
+  const router = useRouter();
+
+  const [
+    conversationId,
+    setConversationId,
+  ] = useState<number | null>(
+    initialConversationId ?? null,
+  );
+
   const [message, setMessage] =
     useState("");
 
   const [messages, setMessages] =
-    useState<ChatMessage[]>([]);
+    useState<ChatMessage[]>(
+      initialMessages,
+    );
 
   const [error, setError] =
     useState<string | null>(null);
@@ -69,10 +88,12 @@ export function BotChat({
       content: trimmedMessage,
     };
 
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      userMessage,
-    ]);
+    setMessages(
+      (currentMessages) => [
+        ...currentMessages,
+        userMessage,
+      ],
+    );
 
     setMessage("");
 
@@ -89,7 +110,13 @@ export function BotChat({
 
           body: JSON.stringify({
             botId,
-            message: trimmedMessage,
+
+            conversationId:
+              conversationId ??
+              undefined,
+
+            message:
+              trimmedMessage,
           }),
         },
       );
@@ -99,7 +126,8 @@ export function BotChat({
 
       if (
         !response.ok ||
-        !data.reply
+        !data.reply ||
+        !data.conversationId
       ) {
         throw new Error(
           data.error ??
@@ -107,12 +135,12 @@ export function BotChat({
         );
       }
 
-      const assistantMessage: ChatMessage =
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: data.reply,
-        };
+      const assistantMessage:
+        ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: data.reply,
+      };
 
       setMessages(
         (currentMessages) => [
@@ -120,6 +148,23 @@ export function BotChat({
           assistantMessage,
         ],
       );
+
+      if (
+        conversationId === null
+      ) {
+        setConversationId(
+          data.conversationId,
+        );
+
+        router.replace(
+          `/bots/${botId}/chat?conversationId=${data.conversationId}`,
+          {
+            scroll: false,
+          },
+        );
+      }
+
+      router.refresh();
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -141,8 +186,7 @@ export function BotChat({
         </CardTitle>
 
         <CardDescription>
-          メッセージを入力すると
-          AI Botが回答します。
+          メッセージはデータベースに保存されます。
         </CardDescription>
       </CardHeader>
 

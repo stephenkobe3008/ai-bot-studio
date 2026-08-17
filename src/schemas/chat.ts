@@ -6,6 +6,12 @@ export const chatRequestSchema = z.object({
     .int()
     .positive(),
 
+  conversationId: z
+    .number()
+    .int()
+    .positive()
+    .optional(),
+
   message: z
     .string()
     .trim()

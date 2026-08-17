@@ -8,11 +8,37 @@ datasource db {
 }
 
 model Bot {
-  id           Int      @id @default(autoincrement())
-  name         String
-  description  String
-  systemPrompt String
-  status       String   @default("下書き")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            Int            @id @default(autoincrement())
+  name          String
+  description   String
+  systemPrompt  String
+  status        String         @default("下書き")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  botId     Int
+  title     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  bot      Bot       @relation(fields: [botId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([botId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  conversationId Int
+  role           String
+  content        String
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
 }
