@@ -1,20 +1,66 @@
 import Link from "next/link";
 
+import { buttonVariants } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6">
-      <h1 className="text-4xl font-bold">AI Bot Studio</h1>
+    <main className="flex min-h-screen items-center justify-center px-6 py-12">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-4xl">
+            AI Bot Studio
+          </CardTitle>
 
-      <p className="text-gray-600">
-        自分専用のAI Botを作成・管理するアプリ
-      </p>
+          <CardDescription className="text-base">
+            自分専用のAI Botを作成・管理するアプリ
+          </CardDescription>
+        </CardHeader>
 
-      <Link
-        href="/bots"
-        className="rounded-md bg-black px-6 py-3 text-white transition hover:bg-gray-700"
-      >
-        Bot一覧を見る
-      </Link>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Link
+              href="/bots"
+              className={buttonVariants({
+                variant: "default",
+                className:
+                  "h-auto min-h-24 flex-col gap-1",
+              })}
+            >
+              <span className="text-base">
+                Bot管理
+              </span>
+
+              <span className="text-xs opacity-80">
+                作成・編集・チャット
+              </span>
+            </Link>
+
+            <Link
+              href="/logs"
+              className={buttonVariants({
+                variant: "outline",
+                className:
+                  "h-auto min-h-24 flex-col gap-1",
+              })}
+            >
+              <span className="text-base">
+                Bot Log
+              </span>
+
+              <span className="text-xs text-muted-foreground">
+                会話・利用状況を見る
+              </span>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </main>
   );
 }
