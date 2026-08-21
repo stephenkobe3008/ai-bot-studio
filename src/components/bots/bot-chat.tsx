@@ -29,11 +29,22 @@ type BotChatProps = {
   initialMessages?: ChatMessage[];
 };
 
-type ChatApiResponse = {
-  reply?: string;
-  conversationId?: number;
-  error?: string;
-};
+type StreamEvent =
+  | {
+      type: "conversation";
+      conversationId: number;
+    }
+  | {
+      type: "delta";
+      delta: string;
+    }
+  | {
+      type: "done";
+    }
+  | {
+      type: "error";
+      message: string;
+    };
 
 export function BotChat({
   botId,
@@ -88,10 +99,21 @@ export function BotChat({
       content: trimmedMessage,
     };
 
+    const assistantMessageId =
+      crypto.randomUUID();
+
+    const assistantMessage:
+      ChatMessage = {
+      id: assistantMessageId,
+      role: "assistant",
+      content: "",
+    };
+
     setMessages(
       (currentMessages) => [
         ...currentMessages,
         userMessage,
+        assistantMessage,
       ],
     );
 
@@ -121,50 +143,152 @@ export function BotChat({
         },
       );
 
-      const data =
-        (await response.json()) as ChatApiResponse;
+      if (!response.ok) {
+        const data =
+          (await response.json()) as {
+            error?: string;
+          };
 
-      if (
-        !response.ok ||
-        !data.reply ||
-        !data.conversationId
-      ) {
         throw new Error(
           data.error ??
             "AIから回答を取得できませんでした。",
         );
       }
 
-      const assistantMessage:
-        ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: data.reply,
-      };
-
-      setMessages(
-        (currentMessages) => [
-          ...currentMessages,
-          assistantMessage,
-        ],
-      );
-
-      if (
-        conversationId === null
-      ) {
-        setConversationId(
-          data.conversationId,
-        );
-
-        router.replace(
-          `/bots/${botId}/chat?conversationId=${data.conversationId}`,
-          {
-            scroll: false,
-          },
+      if (!response.body) {
+        throw new Error(
+          "ストリーミングレスポンスを取得できませんでした。",
         );
       }
 
-      router.refresh();
+      const reader =
+        response.body.getReader();
+
+      const decoder =
+        new TextDecoder();
+
+      let buffer = "";
+
+      let receivedConversationId =
+        conversationId;
+
+      while (true) {
+        const {
+          value,
+          done,
+        } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        buffer += decoder.decode(
+          value,
+          {
+            stream: true,
+          },
+        );
+
+        const blocks =
+          buffer.split("\n\n");
+
+        buffer =
+          blocks.pop() ?? "";
+
+        for (const block of blocks) {
+          const dataLine =
+            block
+              .split("\n")
+              .find((line) =>
+                line.startsWith(
+                  "data: ",
+                ),
+              );
+
+          if (!dataLine) {
+            continue;
+          }
+
+          const streamEvent =
+            JSON.parse(
+              dataLine.slice(6),
+            ) as StreamEvent;
+
+          if (
+            streamEvent.type ===
+            "conversation"
+          ) {
+            receivedConversationId =
+              streamEvent.conversationId;
+
+            if (
+              conversationId ===
+              null
+            ) {
+              setConversationId(
+                streamEvent.conversationId,
+              );
+
+              router.replace(
+                `/bots/${botId}/chat?conversationId=${streamEvent.conversationId}`,
+                {
+                  scroll: false,
+                },
+              );
+            }
+
+            continue;
+          }
+
+          if (
+            streamEvent.type ===
+            "delta"
+          ) {
+            setMessages(
+              (currentMessages) =>
+                currentMessages.map(
+                  (chatMessage) =>
+                    chatMessage.id ===
+                    assistantMessageId
+                      ? {
+                          ...chatMessage,
+
+                          content:
+                            chatMessage.content +
+                            streamEvent.delta,
+                        }
+                      : chatMessage,
+                ),
+            );
+
+            continue;
+          }
+
+          if (
+            streamEvent.type ===
+            "error"
+          ) {
+            throw new Error(
+              streamEvent.message,
+            );
+          }
+
+          if (
+            streamEvent.type ===
+            "done"
+          ) {
+            if (
+              receivedConversationId
+            ) {
+              setConversationId(
+                receivedConversationId,
+              );
+            }
+
+            router.refresh();
+          }
+        }
+      }
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
@@ -173,6 +297,19 @@ export function BotChat({
           "予期しないエラーが発生しました。",
         );
       }
+
+      setMessages(
+        (currentMessages) =>
+          currentMessages.filter(
+            (chatMessage) =>
+              !(
+                chatMessage.id ===
+                  assistantMessageId &&
+                chatMessage.content ===
+                  ""
+              ),
+          ),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -186,6 +323,7 @@ export function BotChat({
         </CardTitle>
 
         <CardDescription>
+          AIの回答をリアルタイムで表示します。
           メッセージはデータベースに保存されます。
         </CardDescription>
       </CardHeader>
@@ -216,22 +354,24 @@ export function BotChat({
                       : botName}
                   </p>
 
-                  <p className="whitespace-pre-wrap leading-7">
-                    {
-                      chatMessage.content
-                    }
-                  </p>
+                  {chatMessage.role ===
+                    "assistant" &&
+                  chatMessage.content ===
+                    "" &&
+                  isLoading ? (
+                    <p className="text-sm text-muted-foreground">
+                      AIが回答を考えています...
+                    </p>
+                  ) : (
+                    <p className="whitespace-pre-wrap leading-7">
+                      {
+                        chatMessage.content
+                      }
+                    </p>
+                  )}
                 </div>
               ),
             )
-          )}
-
-          {isLoading && (
-            <div className="mr-auto max-w-[80%] rounded-lg bg-background p-3 shadow-sm">
-              <p className="text-sm text-muted-foreground">
-                AIが回答を考えています...
-              </p>
-            </div>
           )}
         </div>
 
@@ -269,7 +409,7 @@ export function BotChat({
               }
             >
               {isLoading
-                ? "送信中..."
+                ? "回答中..."
                 : "送信する"}
             </Button>
           </div>
