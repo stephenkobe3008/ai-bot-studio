@@ -221,21 +221,9 @@ export function BotChat({
             receivedConversationId =
               streamEvent.conversationId;
 
-            if (
-              conversationId ===
-              null
-            ) {
-              setConversationId(
-                streamEvent.conversationId,
-              );
-
-              router.replace(
-                `/bots/${botId}/chat?conversationId=${streamEvent.conversationId}`,
-                {
-                  scroll: false,
-                },
-              );
-            }
+            setConversationId(
+              streamEvent.conversationId,
+            );
 
             continue;
           }
@@ -283,9 +271,21 @@ export function BotChat({
               setConversationId(
                 receivedConversationId,
               );
-            }
 
-            router.refresh();
+              if (
+                conversationId ===
+                null
+              ) {
+                router.replace(
+                  `/bots/${botId}/chat?conversationId=${receivedConversationId}`,
+                  {
+                    scroll: false,
+                  },
+                );
+              } else {
+                router.refresh();
+              }
+            }
           }
         }
       }
