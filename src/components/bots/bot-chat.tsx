@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import type { SubmitEvent } from "react";
-import { useState } from "react";
+import {
+  useRef,
+  useState,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +57,11 @@ export function BotChat({
 }: BotChatProps) {
   const router = useRouter();
 
+  const abortControllerRef =
+    useRef<AbortController | null>(
+      null,
+    );
+
   const [
     conversationId,
     setConversationId,
@@ -75,6 +83,10 @@ export function BotChat({
   const [isLoading, setIsLoading] =
     useState(false);
 
+  const handleStop = () => {
+    abortControllerRef.current?.abort();
+  };
+
   const handleSubmit = async (
     event: SubmitEvent<HTMLFormElement>,
   ) => {
@@ -92,6 +104,12 @@ export function BotChat({
 
     setError(null);
     setIsLoading(true);
+
+    const abortController =
+      new AbortController();
+
+    abortControllerRef.current =
+      abortController;
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -119,6 +137,9 @@ export function BotChat({
 
     setMessage("");
 
+    let receivedConversationId =
+      conversationId;
+
     try {
       const response = await fetch(
         "/api/chat",
@@ -140,6 +161,9 @@ export function BotChat({
             message:
               trimmedMessage,
           }),
+
+          signal:
+            abortController.signal,
         },
       );
 
@@ -168,9 +192,6 @@ export function BotChat({
         new TextDecoder();
 
       let buffer = "";
-
-      let receivedConversationId =
-        conversationId;
 
       while (true) {
         const {
@@ -290,6 +311,47 @@ export function BotChat({
         }
       }
     } catch (error) {
+      const isAbort =
+        abortController.signal.aborted;
+
+      if (isAbort) {
+        setError(null);
+
+        setMessages(
+          (currentMessages) =>
+            currentMessages.filter(
+              (chatMessage) =>
+                !(
+                  chatMessage.id ===
+                    assistantMessageId &&
+                  chatMessage.content ===
+                    ""
+                ),
+            ),
+        );
+
+        if (
+          receivedConversationId
+        ) {
+          setConversationId(
+            receivedConversationId,
+          );
+
+          if (
+            conversationId ===
+            null
+          ) {
+            window.history.replaceState(
+              null,
+              "",
+              `/bots/${botId}/chat?conversationId=${receivedConversationId}`,
+            );
+          }
+        }
+
+        return;
+      }
+
       if (error instanceof Error) {
         setError(error.message);
       } else {
@@ -311,6 +373,9 @@ export function BotChat({
           ),
       );
     } finally {
+      abortControllerRef.current =
+        null;
+
       setIsLoading(false);
     }
   };
@@ -401,17 +466,24 @@ export function BotChat({
           />
 
           <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={
-                isLoading ||
-                !message.trim()
-              }
-            >
-              {isLoading
-                ? "回答中..."
-                : "送信する"}
-            </Button>
+            {isLoading ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleStop}
+              >
+                回答を停止
+              </Button>
+            ) : (
+              <Button
+                type="submit"
+                disabled={
+                  !message.trim()
+                }
+              >
+                送信する
+              </Button>
+            )}
           </div>
         </form>
       </CardContent>

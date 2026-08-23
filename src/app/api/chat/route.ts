@@ -223,6 +223,29 @@ export async function POST(
       newConversation.id;
   }
 
+  const saveAssistantMessage =
+    async (content: string) => {
+      await prisma.$transaction([
+        prisma.message.create({
+          data: {
+            conversationId,
+            role: "assistant",
+            content,
+          },
+        }),
+
+        prisma.conversation.update({
+          where: {
+            id: conversationId,
+          },
+
+          data: {
+            updatedAt: new Date(),
+          },
+        }),
+      ]);
+    };
+
   const openai = new OpenAI({
     apiKey,
   });
@@ -235,16 +258,26 @@ export async function POST(
         const sendEvent = (
           data: unknown,
         ) => {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify(
-                data,
-              )}\n\n`,
-            ),
-          );
+          if (request.signal.aborted) {
+            return;
+          }
+
+          try {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify(
+                  data,
+                )}\n\n`,
+              ),
+            );
+          } catch {
+            // クライアント側で通信が切断された場合は
+            // それ以上イベントを送信しない
+          }
         };
 
         let reply = "";
+        let assistantSaved = false;
 
         try {
           sendEvent({
@@ -253,19 +286,24 @@ export async function POST(
           });
 
           const stream =
-            await openai.responses.create({
-              model:
-                process.env
-                  .OPENAI_MODEL ??
-                "gpt-5.6",
+            await openai.responses.create(
+              {
+                model:
+                  process.env
+                    .OPENAI_MODEL ??
+                  "gpt-5.6",
 
-              instructions:
-                bot.systemPrompt,
+                instructions:
+                  bot.systemPrompt,
 
-              input,
+                input,
 
-              stream: true,
-            });
+                stream: true,
+              },
+              {
+                signal: request.signal,
+              },
+            );
 
           for await (const event of stream) {
             if (
@@ -290,30 +328,45 @@ export async function POST(
             );
           }
 
-          await prisma.$transaction([
-            prisma.message.create({
-              data: {
-                conversationId,
-                role: "assistant",
-                content: finalReply,
-              },
-            }),
+          await saveAssistantMessage(
+            finalReply,
+          );
 
-            prisma.conversation.update({
-              where: {
-                id: conversationId,
-              },
-
-              data: {
-                updatedAt: new Date(),
-              },
-            }),
-          ]);
+          assistantSaved = true;
 
           sendEvent({
             type: "done",
           });
         } catch (error) {
+          if (request.signal.aborted) {
+            const partialReply =
+              reply.trim();
+
+            if (
+              partialReply &&
+              !assistantSaved
+            ) {
+              try {
+                await saveAssistantMessage(
+                  partialReply,
+                );
+
+                assistantSaved = true;
+              } catch (saveError) {
+                console.error(
+                  "停止したAI回答の保存に失敗しました。",
+                  saveError,
+                );
+              }
+            }
+
+            console.log(
+              "AI回答のストリーミングを停止しました。",
+            );
+
+            return;
+          }
+
           console.error(
             "OpenAI APIのストリーミングに失敗しました。",
             error,
@@ -325,7 +378,13 @@ export async function POST(
               "AIからの回答取得に失敗しました。",
           });
         } finally {
-          controller.close();
+          if (!request.signal.aborted) {
+            try {
+              controller.close();
+            } catch {
+              // すでにストリームが閉じている場合は何もしない
+            }
+          }
         }
       },
     });
