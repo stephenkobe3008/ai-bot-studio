@@ -180,90 +180,20 @@ export async function POST(
     },
   ];
 
-  const openai = new OpenAI({
-    apiKey,
-  });
-
-  let reply: string;
-
-  try {
-    const response =
-      await openai.responses.create({
-        model:
-          process.env.OPENAI_MODEL ??
-          "gpt-5.6",
-
-        instructions:
-          bot.systemPrompt,
-
-        input,
-      });
-
-    reply =
-      response.output_text.trim();
-
-    if (!reply) {
-      return Response.json(
-        {
-          error:
-            "AIから回答を取得できませんでした。",
-        },
-        {
-          status: 502,
-        },
-      );
-    }
-  } catch (error) {
-    console.error(
-      "OpenAI APIの呼び出しに失敗しました。",
-      error,
-    );
-
-    return Response.json(
-      {
-        error:
-          "AIからの回答取得に失敗しました。",
-      },
-      {
-        status: 500,
-      },
-    );
-  }
-
   let conversationId: number;
 
   if (conversation) {
     conversationId =
       conversation.id;
 
-    await prisma.$transaction([
-      prisma.message.create({
-        data: {
-          conversationId,
-          role: "user",
-          content:
-            result.data.message,
-        },
-      }),
-
-      prisma.message.create({
-        data: {
-          conversationId,
-          role: "assistant",
-          content: reply,
-        },
-      }),
-
-      prisma.conversation.update({
-        where: {
-          id: conversationId,
-        },
-
-        data: {
-          updatedAt: new Date(),
-        },
-      }),
-    ]);
+    await prisma.message.create({
+      data: {
+        conversationId,
+        role: "user",
+        content:
+          result.data.message,
+      },
+    });
   } else {
     const newConversation =
       await prisma.conversation.create({
@@ -276,18 +206,11 @@ export async function POST(
             ),
 
           messages: {
-            create: [
-              {
-                role: "user",
-                content:
-                  result.data.message,
-              },
-
-              {
-                role: "assistant",
-                content: reply,
-              },
-            ],
+            create: {
+              role: "user",
+              content:
+                result.data.message,
+            },
           },
         },
 
@@ -300,8 +223,120 @@ export async function POST(
       newConversation.id;
   }
 
-  return Response.json({
-    reply,
-    conversationId,
+  const openai = new OpenAI({
+    apiKey,
+  });
+
+  const encoder = new TextEncoder();
+
+  const responseStream =
+    new ReadableStream({
+      async start(controller) {
+        const sendEvent = (
+          data: unknown,
+        ) => {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify(
+                data,
+              )}\n\n`,
+            ),
+          );
+        };
+
+        let reply = "";
+
+        try {
+          sendEvent({
+            type: "conversation",
+            conversationId,
+          });
+
+          const stream =
+            await openai.responses.create({
+              model:
+                process.env
+                  .OPENAI_MODEL ??
+                "gpt-5.6",
+
+              instructions:
+                bot.systemPrompt,
+
+              input,
+
+              stream: true,
+            });
+
+          for await (const event of stream) {
+            if (
+              event.type ===
+              "response.output_text.delta"
+            ) {
+              reply += event.delta;
+
+              sendEvent({
+                type: "delta",
+                delta: event.delta,
+              });
+            }
+          }
+
+          const finalReply =
+            reply.trim();
+
+          if (!finalReply) {
+            throw new Error(
+              "AIから回答を取得できませんでした。",
+            );
+          }
+
+          await prisma.$transaction([
+            prisma.message.create({
+              data: {
+                conversationId,
+                role: "assistant",
+                content: finalReply,
+              },
+            }),
+
+            prisma.conversation.update({
+              where: {
+                id: conversationId,
+              },
+
+              data: {
+                updatedAt: new Date(),
+              },
+            }),
+          ]);
+
+          sendEvent({
+            type: "done",
+          });
+        } catch (error) {
+          console.error(
+            "OpenAI APIのストリーミングに失敗しました。",
+            error,
+          );
+
+          sendEvent({
+            type: "error",
+            message:
+              "AIからの回答取得に失敗しました。",
+          });
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+  return new Response(responseStream, {
+    headers: {
+      "Content-Type":
+        "text/event-stream; charset=utf-8",
+
+      "Cache-Control":
+        "no-cache, no-transform",
+    },
   });
 }
